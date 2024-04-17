@@ -8,7 +8,7 @@
 
 class Display {
 public:
-  static std::unique_ptr<Display> create(int width, int height) {
+  static std::unique_ptr<Display> create(const int width, const int height) {
     glewExperimental = GL_TRUE;
     glfwWindowHint(GLFW_SAMPLES, 4); // 4x anti-aliasing
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -39,6 +39,7 @@ public:
 private:
   Display(GLFWwindow *window);
 
+  Display(Display &&) = default;
   Display(const Display &){};
   void operator=(const Display &) {};
 

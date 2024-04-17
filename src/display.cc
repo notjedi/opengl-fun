@@ -1,5 +1,4 @@
 #include "display.h"
-#include <GLFW/glfw3.h>
 
 Display::Display(GLFWwindow *window) { m_window = window; }
 
