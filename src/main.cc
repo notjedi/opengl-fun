@@ -7,24 +7,29 @@
 #include "display.h"
 #include "shader.h"
 
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
+const int WINDOW_WIDTH = 1280;
+const int WINDOW_HEIGHT = 720;
 
 const char *VERTEX_PROGRAM = R"glsl(
 #version 330 core
 in vec2 position;
+in vec3 color;
+
+out vec3 out_color;
 
 void main() {
+    out_color = color;
     gl_Position = vec4(position, 0.0, 1.0);
 }
 )glsl";
 
 const char *FRAGMENT_PROGRAM = R"glsl(
 #version 330 core
-out vec4 color;
+in vec3 out_color;
+out vec4 pixel_color;
 
 void main() {
-    color = vec4(0.3, 0.2, 0.1, 1.0);
+    pixel_color = vec4(out_color, 1.0);
 }
 )glsl";
 
@@ -47,25 +52,34 @@ int main() {
     return -1;
   }
 
-  float vertex_data[] = {-0.5, -0.5, 0.5, -0.5, 0.0f, 0.5};
+  Shader shader = Shader(VERTEX_PROGRAM, FRAGMENT_PROGRAM);
+  shader.Bind();
+
+  float vertex_data[] = {-0.5, -0.5, 1.0, 0.0, 0.0,  // red
+                         0.5,  -0.5, 0.0, 1.0, 0.0,  // green
+                         0.0f, 0.5,  0.0, 0.0, 1.0}; // blue
+
   GLuint vertex_buffer;
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
                GL_STATIC_DRAW);
 
-  Shader shader = Shader(VERTEX_PROGRAM, FRAGMENT_PROGRAM);
-
   GLuint vao;
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
   GLuint pos_loc = shader.GetAttribLocation("position");
-  glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
   glEnableVertexAttribArray(pos_loc);
 
+  GLuint color_loc = shader.GetAttribLocation("color");
+  glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+  glEnableVertexAttribArray(color_loc);
+
   do {
-    display->Clear(1.0, 1.0, 1.0, 1.0);
+    display->Clear(0.0, 0.0, 0.0, 1.0);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     display->SwapBuffers();
@@ -74,6 +88,8 @@ int main() {
            display->GetKey(GLFW_KEY_Q) != GLFW_PRESS &&
            !display->ShouldClose());
 
+  glDeleteVertexArrays(1, &vao);
+  glDeleteBuffers(1, &vertex_buffer);
   glfwTerminate();
   return 0;
 }

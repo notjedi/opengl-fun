@@ -6,7 +6,7 @@ Shader::Shader(const char *vert_shader_src, const char *frag_shader_src) {
   GLuint frag_shader = CreateShader(GL_FRAGMENT_SHADER, frag_shader_src);
 
   // bind "color" as the output variable which will be the color
-  // glBindFragDataLocation(frag_shader, 0, "color");
+  // glBindFragDataLocation(frag_shader, 0, "pixel_color");
 
   glAttachShader(program, vert_shader);
   glAttachShader(program, frag_shader);
