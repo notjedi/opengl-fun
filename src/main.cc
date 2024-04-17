@@ -5,9 +5,28 @@
 #include <glm/glm.hpp>
 
 #include "display.h"
+#include "shader.h"
 
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
+
+const char *VERTEX_PROGRAM = R"glsl(
+#version 330 core
+in vec2 position;
+
+void main() {
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+)glsl";
+
+const char *FRAGMENT_PROGRAM = R"glsl(
+#version 330 core
+out vec4 color;
+
+void main() {
+    color = vec4(0.3, 0.2, 0.1, 1.0);
+}
+)glsl";
 
 int main() {
   if (!glfwInit()) {
@@ -28,8 +47,26 @@ int main() {
     return -1;
   }
 
+  float vertex_data[] = {-0.5, -0.5, 0.5, -0.5, 0.0f, 0.5};
+  GLuint vertex_buffer;
+  glGenBuffers(1, &vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
+               GL_STATIC_DRAW);
+
+  Shader shader = Shader(VERTEX_PROGRAM, FRAGMENT_PROGRAM);
+
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  GLuint pos_loc = shader.GetAttribLocation("position");
+  glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(pos_loc);
+
   do {
     display->Clear(1.0, 1.0, 1.0, 1.0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     display->SwapBuffers();
     glfwPollEvents();
