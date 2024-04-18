@@ -72,8 +72,8 @@ int main() {
 
   float vertex_data[] = {
       // X, Y,    R,   G,  B,   tx,   ty
-      -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0, // red - bottom left
-      0.0f, 0.5,  0.0, 1.0, 0.0, 0.5, 1.0, // green - top
+      -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, // red - bottom left
+      0.0f, 0.5,  0.0, 1.0, 0.0, 0.5, 0.0, // green - top
       0.5,  -0.5, 0.0, 0.0, 1.0, 1.0, 1.0  // blue - bottom right
   };
 
@@ -106,6 +106,8 @@ int main() {
   GLuint tex;
   glGenTextures(1, &tex);
   glBindTexture(GL_TEXTURE_2D, tex);
+  glActiveTexture(GL_TEXTURE1);
+  glUniform1i(shader.GetUniformLocation("tex"), 1);
 
   int width, height, chan;
   unsigned char *img =
