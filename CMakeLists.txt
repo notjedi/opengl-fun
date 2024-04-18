@@ -12,12 +12,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -g")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -g -fsanitize=address")
 
+
 set(SOURCES 
     src/main.cc
     src/display.cc
     src/shader.cc
 )
 
+include_directories(/usr/include) # for SOIL
 include_directories(include)
 set(HEADERS
     include/display.h
@@ -25,4 +27,4 @@ set(HEADERS
 )
 
 add_executable(gl ${SOURCES} ${HEADERS})
-target_link_libraries(gl PRIVATE OpenGL::GL glfw glm::glm GLEW)
+target_link_libraries(gl PRIVATE OpenGL::GL glfw glm::glm GLEW SOIL)
