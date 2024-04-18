@@ -15,11 +15,11 @@ const char *VERTEX_PROGRAM = R"glsl(
 in vec2 position;
 in vec3 color;
 out vec3 out_color;
-uniform float offset;
 
 void main() {
     out_color = color;
-    gl_Position = vec4(position.x + offset, position.y, 0.0, 1.0);
+    out_color = vec3(position, 0.0);
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
 }
 )glsl";
 
@@ -27,11 +27,9 @@ const char *FRAGMENT_PROGRAM = R"glsl(
 #version 330 core
 in vec3 out_color;
 out vec4 pixel_color;
-uniform vec4 uni_color;
 
 void main() {
     pixel_color = vec4(out_color, 1.0);
-    pixel_color = uni_color;
 }
 )glsl";
 
@@ -61,26 +59,19 @@ int main() {
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  // float vertex_data[] = {-0.5, -0.5, 0.0, 0.0, 0.0,  // red - bottom left
-  //                        0.5,  -0.5, 0.5, 0.5, 0.5,  // green - bottom right
-  //                        0.0f, 0.5,  1.0, 1.0, 1.0}; // blue - top
-
   float vertex_data[] = {
-      -0.5,  -0.5, 1.0, 0.0, 0.0, // bottom left - red
-      -0.5f, 0.5,  0.0, 0.0, 1.0, // top left - blue
-      0.5f,  0.5,  1.0, 1.0, 1.0, // top right
-      0.5,   -0.5, 0.0, 1.0, 0.0, // bottom right - green
+      -0.5, -0.5, 1.0, 0.0, 0.0, // red - bottom left
+      0.0f, 0.5,  0.0, 1.0, 0.0, // green - top
+      0.5,  -0.5, 0.0, 0.0, 1.0, // blue - bottom right
   };
+
   GLuint vertex_buffer;
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
                GL_STATIC_DRAW);
 
-  GLuint elems[] = {
-      0, 1, 3, // lower left half
-      1, 2, 3, // top right half
-  };
+  GLuint elems[] = {0, 1, 2};
   GLuint elem_buffer;
   glGenBuffers(1, &elem_buffer);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elem_buffer);
@@ -94,24 +85,20 @@ int main() {
   glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void *)(2 * sizeof(float)));
   glEnableVertexAttribArray(color_loc);
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-  // glEnable(GL_CULL_FACE);
-  // glCullFace(GL_BACK);
-  // glFrontFace(GL_CW);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CW);
 
   do {
     double time = glfwGetTime();
 
+    GLint uni_loc = shader.GetUniformLocation("uni_color");
     double r = (sin(time) / 2.0f) + 0.5f;
     double g = (cos(time) / 2.0f) + 0.5f;
     double b = (r + g) / 2.0f;
-    GLint uni_loc = shader.GetUniformLocation("uni_color");
     glUniform4f(uni_loc, r, g, b, 1.0f);
-
-    double offset = (sin(time) / 2.0f) + 0.5f;
-    GLint offset_loc = shader.GetUniformLocation("offset");
-    glUniform1f(offset_loc, offset);
 
     display->Clear(0.0, 0.0, 0.0, 1.0);
     // glDrawArrays(GL_TRIANGLE_STRIP, 0,
