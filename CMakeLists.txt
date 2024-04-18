@@ -4,6 +4,7 @@ project(learn_opengl)
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)
 find_package(GLEW REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -24,4 +25,4 @@ set(HEADERS
 )
 
 add_executable(gl ${SOURCES} ${HEADERS})
-target_link_libraries(gl PRIVATE glfw GLEW OpenGL::GL)
+target_link_libraries(gl PRIVATE OpenGL::GL glfw glm::glm GLEW)

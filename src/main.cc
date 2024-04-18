@@ -55,19 +55,28 @@ int main() {
   Shader shader = Shader(VERTEX_PROGRAM, FRAGMENT_PROGRAM);
   shader.Bind();
 
-  float vertex_data[] = {-0.5, -0.5, 1.0, 0.0, 0.0,  // red
-                         0.5,  -0.5, 0.0, 1.0, 0.0,  // green
-                         0.0f, 0.5,  0.0, 0.0, 1.0}; // blue
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
 
+  float vertex_data[] = {-0.5,  -0.5, 1.0, 0.0, 0.0,  // bottom left - red
+                         0.5,   -0.5, 0.0, 1.0, 0.0,  // bottom right - green
+                         -0.5f, 0.5,  0.0, 0.0, 1.0,  // top left - blue
+                         0.5f,  0.5,  0.5, 0.5, 0.5}; // top right
   GLuint vertex_buffer;
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
                GL_STATIC_DRAW);
 
-  GLuint vao;
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
+  GLuint elems[] = {
+      0, 1, 2, // lower left half
+      1, 2, 3, // top right half
+  };
+  GLuint elem_buffer;
+  glGenBuffers(1, &elem_buffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elem_buffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
 
   GLuint pos_loc = shader.GetAttribLocation("position");
   glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
@@ -80,7 +89,10 @@ int main() {
 
   do {
     display->Clear(0.0, 0.0, 0.0, 1.0);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawArrays(GL_TRIANGLE_STRIP, 0,
+    //              sizeof(vertex_data) / (5 * sizeof(float)));
+    glDrawElements(GL_TRIANGLES, sizeof(elems) / sizeof(elems[0]),
+                   GL_UNSIGNED_INT, 0);
 
     display->SwapBuffers();
     glfwPollEvents();
@@ -90,6 +102,7 @@ int main() {
 
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &vertex_buffer);
+  glDeleteBuffers(1, &elem_buffer);
   glfwTerminate();
   return 0;
 }
