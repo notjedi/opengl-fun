@@ -11,6 +11,7 @@ public:
 
   void Bind();
   GLint GetAttribLocation(const char *name);
+  GLint GetUniformLocation(const char *name);
 
 private:
   static const int NUM_SHADERS = 2;

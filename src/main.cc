@@ -14,7 +14,6 @@ const char *VERTEX_PROGRAM = R"glsl(
 #version 330 core
 in vec2 position;
 in vec3 color;
-
 out vec3 out_color;
 
 void main() {
@@ -27,9 +26,11 @@ const char *FRAGMENT_PROGRAM = R"glsl(
 #version 330 core
 in vec3 out_color;
 out vec4 pixel_color;
+uniform vec4 uni_color;
 
 void main() {
     pixel_color = vec4(out_color, 1.0);
+    pixel_color = uni_color;
 }
 )glsl";
 
@@ -99,6 +100,13 @@ int main() {
   // glFrontFace(GL_CW);
 
   do {
+    double time = glfwGetTime();
+    double r = (sin(time) / 2.0f) + 0.5f;
+    double g = (cos(time) / 2.0f) + 0.5f;
+    double b = (r + g) / 2.0f;
+    GLint uni_loc = shader.GetUniformLocation("uni_color");
+    glUniform4f(uni_loc, r, g, b, 1.0f);
+
     display->Clear(0.0, 0.0, 0.0, 1.0);
     // glDrawArrays(GL_TRIANGLE_STRIP, 0,
     //              sizeof(vertex_data) / (5 * sizeof(float)));
