@@ -59,10 +59,16 @@ int main() {
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  float vertex_data[] = {-0.5,  -0.5, 1.0, 0.0, 0.0,  // bottom left - red
-                         0.5,   -0.5, 0.0, 1.0, 0.0,  // bottom right - green
-                         -0.5f, 0.5,  0.0, 0.0, 1.0,  // top left - blue
-                         0.5f,  0.5,  0.5, 0.5, 0.5}; // top right
+  // float vertex_data[] = {-0.5, -0.5, 0.0, 0.0, 0.0,  // red - bottom left
+  //                        0.5,  -0.5, 0.5, 0.5, 0.5,  // green - bottom right
+  //                        0.0f, 0.5,  1.0, 1.0, 1.0}; // blue - top
+
+  float vertex_data[] = {
+      -0.5,  -0.5, 1.0, 0.0, 0.0, // bottom left - red
+      -0.5f, 0.5,  0.0, 0.0, 1.0, // top left - blue
+      0.5f,  0.5,  1.0, 1.0, 1.0, // top right
+      0.5,   -0.5, 0.0, 1.0, 0.0, // bottom right - green
+  };
   GLuint vertex_buffer;
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -70,7 +76,7 @@ int main() {
                GL_STATIC_DRAW);
 
   GLuint elems[] = {
-      0, 1, 2, // lower left half
+      0, 1, 3, // lower left half
       1, 2, 3, // top right half
   };
   GLuint elem_buffer;
@@ -86,6 +92,11 @@ int main() {
   glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void *)(2 * sizeof(float)));
   glEnableVertexAttribArray(color_loc);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+  // glEnable(GL_CULL_FACE);
+  // glCullFace(GL_BACK);
+  // glFrontFace(GL_CW);
 
   do {
     display->Clear(0.0, 0.0, 0.0, 1.0);
