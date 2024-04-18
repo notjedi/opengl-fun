@@ -9,9 +9,9 @@ public:
   Shader(const char *vert_shader_src, const char *frag_shader_src);
   ~Shader();
 
-  void Bind();
-  GLint GetAttribLocation(const char *name);
-  GLint GetUniformLocation(const char *name);
+  void Bind() const;
+  GLint GetAttribLocation(const char *name) const;
+  GLint GetUniformLocation(const char *name) const;
 
 private:
   static const int NUM_SHADERS = 2;
@@ -20,8 +20,8 @@ private:
   void operator=(const Shader &) {};
 
   GLint CheckError(GLuint shader, GLuint flag, bool is_program,
-                   const char *err_msg);
-  GLuint CreateShader(GLenum shader_type, const char *program);
+                   const char *err_msg) const;
+  GLuint CreateShader(GLenum shader_type, const char *program) const;
 
   GLuint m_program;
   GLuint m_vert_shader;

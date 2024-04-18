@@ -32,17 +32,17 @@ Shader::~Shader() {
   glDeleteProgram(m_program);
 }
 
-void Shader::Bind() { glUseProgram(m_program); }
+void Shader::Bind() const { glUseProgram(m_program); }
 
-GLint Shader::GetAttribLocation(const char *name) {
+GLint Shader::GetAttribLocation(const char *name) const {
   return glGetAttribLocation(m_program, name);
 }
 
-GLint Shader::GetUniformLocation(const char *name) {
+GLint Shader::GetUniformLocation(const char *name) const {
   return glGetUniformLocation(m_program, name);
 }
 
-GLuint Shader::CreateShader(GLenum shader_type, const char *program) {
+GLuint Shader::CreateShader(GLenum shader_type, const char *program) const {
   GLuint shader = glCreateShader(shader_type);
   glShaderSource(shader, 1, &program, NULL);
   glCompileShader(shader);
@@ -52,7 +52,7 @@ GLuint Shader::CreateShader(GLenum shader_type, const char *program) {
 }
 
 GLint Shader::CheckError(GLuint shader, GLuint flag, bool is_program,
-                         const char *err_msg) {
+                         const char *err_msg) const {
   GLint status;
   if (is_program) {
     glGetProgramiv(shader, flag, &status);

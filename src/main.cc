@@ -15,10 +15,11 @@ const char *VERTEX_PROGRAM = R"glsl(
 in vec2 position;
 in vec3 color;
 out vec3 out_color;
+uniform float offset;
 
 void main() {
     out_color = color;
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = vec4(position.x + offset, position.y, 0.0, 1.0);
 }
 )glsl";
 
@@ -101,11 +102,16 @@ int main() {
 
   do {
     double time = glfwGetTime();
+
     double r = (sin(time) / 2.0f) + 0.5f;
     double g = (cos(time) / 2.0f) + 0.5f;
     double b = (r + g) / 2.0f;
     GLint uni_loc = shader.GetUniformLocation("uni_color");
     glUniform4f(uni_loc, r, g, b, 1.0f);
+
+    double offset = (sin(time) / 2.0f) + 0.5f;
+    GLint offset_loc = shader.GetUniformLocation("offset");
+    glUniform1f(offset_loc, offset);
 
     display->Clear(0.0, 0.0, 0.0, 1.0);
     // glDrawArrays(GL_TRIANGLE_STRIP, 0,

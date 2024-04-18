@@ -30,11 +30,11 @@ public:
 
   ~Display();
 
-  void SetInputMode(int mode, int value);
-  int GetKey(int key);
-  void Clear(float r, float g, float b, float a);
-  void SwapBuffers();
-  int ShouldClose();
+  void SetInputMode(int mode, int value) const;
+  int GetKey(int key) const;
+  void Clear(float r, float g, float b, float a) const;
+  void SwapBuffers() const;
+  int ShouldClose() const;
 
 private:
   Display(GLFWwindow *window);
