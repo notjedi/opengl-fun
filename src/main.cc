@@ -1,160 +1,172 @@
-#include <cstdio>
-
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <SOIL/SOIL.h>
-#include <glm/glm.hpp>
+#include <iostream>
 
-#include "display.h"
-#include "shader.h"
+// Vertex shader code
+const char *vertexShaderSource = R"(
+    #version 330 core
+    layout (location = 0) in vec2 position;
+    void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+)";
 
-const int WINDOW_WIDTH = 1280;
-const int WINDOW_HEIGHT = 720;
+// Fragment shader code
+const char *fragmentShaderSource = R"(
+    #version 330 core
+    uniform sampler2D image1;
+    uniform sampler2D image2;
+    uniform sampler2D mask;
+    out vec4 FragColor;
+    void main() {
+        vec4 texColor1 = texture(image1, 1.0 - (gl_FragCoord.xy / textureSize(image1, 0)));
+        vec4 texColor2 = texture(image2, 1.0 - (gl_FragCoord.xy / textureSize(image2, 0)));
+        vec4 maskColor = texture(mask, 1.0 - (gl_FragCoord.xy / textureSize(mask, 0)));
+        FragColor = mix(texColor1, texColor2, maskColor.r); // Use red channel of mask as blend factor
+    }
+)";
 
-const char *VERTEX_PROGRAM = R"glsl(
-#version 330 core
+// Function to load an image into a texture
+GLuint loadTexture(const char *filename) {
+  GLuint textureID;
+  glGenTextures(1, &textureID);
+  glBindTexture(GL_TEXTURE_2D, textureID);
 
-in vec2 position;
-in vec3 color;
-in vec2 tex_coord;
+  int width, height, channels;
+  unsigned char *image =
+      SOIL_load_image(filename, &width, &height, &channels, SOIL_LOAD_RGBA);
+  if (!image) {
+    std::cerr << "Failed to load texture: " << filename << std::endl;
+    return 0;
+  }
 
-out vec3 out_color;
-out vec2 out_tex_coord;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, image);
+  SOIL_free_image_data(image);
 
-void main() {
-    out_color = color;
-    out_tex_coord = tex_coord;
-    gl_Position = vec4(position, 0.0, 1.0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  return textureID;
 }
-)glsl";
-
-const char *FRAGMENT_PROGRAM = R"glsl(
-#version 330 core
-
-in vec3 out_color;
-in vec2 out_tex_coord;
-
-out vec4 pixel_color;
-
-uniform sampler2D tex;
-
-void main() {
-    vec4 tex_pixel = texture(tex, out_tex_coord);
-    pixel_color = mix(tex_pixel, vec4(out_color, 1.0), 0.5);
-}
-)glsl";
 
 int main() {
+  // Initialize GLFW
   if (!glfwInit()) {
-    fprintf(stderr, "Could not initialize glfw\n");
+    std::cerr << "Failed to initialize GLFW" << std::endl;
     return -1;
   }
 
-  std::unique_ptr<Display> display =
-      Display::create(WINDOW_WIDTH, WINDOW_HEIGHT);
-  if (!display) {
-    return 1;
-  }
-  display->SetInputMode(GLFW_STICKY_KEYS, GLFW_TRUE);
+  glfwWindowHint(GLFW_SAMPLES, 4); // 4x anti-aliasing
+  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  if (glewInit() != GLEW_OK) {
-    fprintf(stderr, "Could not initialize glew\n");
+  // Create GLFW window
+  GLFWwindow *window =
+      glfwCreateWindow(768, 1024, "OpenGL Masked Merge", nullptr, nullptr);
+  if (!window) {
+    std::cerr << "Failed to create GLFW window" << std::endl;
+    glfwTerminate();
+    return -1;
+  }
+  glfwMakeContextCurrent(window);
+
+  // Initialize GLEW
+  GLenum err = glewInit();
+  if (err != GLEW_OK) {
+    std::cerr << "Failed to initialize GLEW: " << glewGetErrorString(err)
+              << std::endl;
     glfwTerminate();
     return -1;
   }
 
-  Shader shader = Shader(VERTEX_PROGRAM, FRAGMENT_PROGRAM);
-  shader.Bind();
+  // Compile vertex shader
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+  glCompileShader(vertexShader);
 
-  GLuint vao;
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
+  // Check for vertex shader compilation errors
 
-  float vertex_data[] = {
-      // X, Y,    R,   G,  B,   tx,   ty
-      -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0, // red - bottom left
-      0.0f, 0.5,  0.0, 1.0, 0.0, 0.5, 0.0, // green - top
-      0.5,  -0.5, 0.0, 0.0, 1.0, 1.0, 1.0  // blue - bottom right
-  };
+  // Compile fragment shader
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+  glCompileShader(fragmentShader);
 
-  GLuint vertex_buffer;
-  glGenBuffers(1, &vertex_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
-               GL_STATIC_DRAW);
+  // Check for fragment shader compilation errors
 
-  GLuint elems[] = {0, 1, 2};
-  GLuint elem_buffer;
-  glGenBuffers(1, &elem_buffer);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elem_buffer);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
+  // Link shaders into shader program
+  GLuint shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glLinkProgram(shaderProgram);
 
-  GLuint pos_loc = shader.GetAttribLocation("position");
-  glVertexAttribPointer(pos_loc, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
-  glEnableVertexAttribArray(pos_loc);
+  // Check for shader program linking errors
 
-  GLuint color_loc = shader.GetAttribLocation("color");
-  glVertexAttribPointer(color_loc, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
-                        (void *)(2 * sizeof(float)));
-  glEnableVertexAttribArray(color_loc);
+  // Load textures
+  GLuint texture1 = loadTexture("/home/jedi/Downloads/bg.png");
+  GLuint texture2 = loadTexture("/home/jedi/Downloads/test_1.png");
+  GLuint maskTexture = loadTexture("/home/jedi/Downloads/test_1_mask.png");
 
-  GLuint tex_coord_loc = shader.GetAttribLocation("tex_coord");
-  glVertexAttribPointer(tex_coord_loc, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
-                        (void *)(5 * sizeof(float)));
-  glEnableVertexAttribArray(tex_coord_loc);
+  // Create VBO and VAO for fullscreen quad
+  float vertices[] = {-1.0f, -1.0f,  // bottom left
+                      1.0f,  -1.0f,  // bottom right
+                      1.0f,  1.0f,   // top right
+                      1.0f,  1.0f,   // top right
+                      -1.0f, 1.0f,   // top left
+                      -1.0f, -1.0f}; // bottom left
+  GLuint VBO, VAO;
+  glGenBuffers(1, &VBO);
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 
-  GLuint tex;
-  glGenTextures(1, &tex);
-  glBindTexture(GL_TEXTURE_2D, tex);
-  glActiveTexture(GL_TEXTURE1);
-  glUniform1i(shader.GetUniformLocation("tex"), 1);
-
-  int width, height, chan;
-  unsigned char *img =
-      SOIL_load_image("/home/jedi/pictures/walls/wp8629994.jpg", &width,
-                      &height, &chan, SOIL_LOAD_RGB);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-               GL_UNSIGNED_BYTE, img);
-  SOIL_free_image_data(img);
-
-  glGenerateMipmap(GL_TEXTURE_2D);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                  GL_NEAREST_MIPMAP_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                  GL_NEAREST_MIPMAP_NEAREST);
-
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  // glEnable(GL_CULL_FACE);
-  // glCullFace(GL_BACK);
-  // glFrontFace(GL_CW);
-
-  do {
-    double time = glfwGetTime();
-
-    GLint uni_loc = shader.GetUniformLocation("uni_color");
-    double r = (sin(time) / 2.0f) + 0.5f;
-    double g = (cos(time) / 2.0f) + 0.5f;
-    double b = (r + g) / 2.0f;
-    glUniform4f(uni_loc, r, g, b, 1.0f);
-
-    display->Clear(0.0, 0.0, 0.0, 1.0);
-    // glDrawArrays(GL_TRIANGLE_STRIP, 0,
-    //              sizeof(vertex_data) / (5 * sizeof(float)));
-    glDrawElements(GL_TRIANGLES, sizeof(elems) / sizeof(elems[0]),
-                   GL_UNSIGNED_INT, 0);
-
-    display->SwapBuffers();
+  // Main loop
+  while (!glfwWindowShouldClose(window)) {
+    // Process input
     glfwPollEvents();
-  } while (display->GetKey(GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-           display->GetKey(GLFW_KEY_Q) != GLFW_PRESS &&
-           !display->ShouldClose());
 
-  glDeleteTextures(1, &tex);
-  glDeleteVertexArrays(1, &vao);
-  glDeleteBuffers(1, &vertex_buffer);
-  glDeleteBuffers(1, &elem_buffer);
+    // Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Use shader program
+    glUseProgram(shaderProgram);
+
+    // Bind textures
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "image1"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glUniform1i(glGetUniformLocation(shaderProgram, "image2"), 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, maskTexture);
+    glUniform1i(glGetUniformLocation(shaderProgram, "mask"), 2);
+
+    // Draw fullscreen quad
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    // Swap buffers
+    glfwSwapBuffers(window);
+  }
+
+  // Cleanup resources
+  glDeleteBuffers(1, &VBO);
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteProgram(shaderProgram);
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
   glfwTerminate();
+
   return 0;
 }
